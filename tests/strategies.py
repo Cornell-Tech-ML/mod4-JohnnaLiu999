@@ -2,6 +2,7 @@ from hypothesis import settings
 from hypothesis.strategies import floats, integers
 
 import minitorch
+import minitorch.operators
 
 
 settings.register_profile("ci", deadline=None)

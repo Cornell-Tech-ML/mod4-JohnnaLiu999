@@ -102,7 +102,7 @@ def _tensor_conv1d(
 
     # TODO: Implement for Task 4.1.
     for out_ordinal in prange(out_size):
-        out_index = np.zeros(3, dtype=np.int64)  # Use int64 for indexing
+        out_index = np.zeros(3, dtype=np.int32)
         to_index(out_ordinal, out_shape, out_index)
         b, oc, ow = out_index  # More descriptive variable name
 
@@ -270,7 +270,7 @@ def _tensor_conv2d(
 
     # TODO: Implement for Task 4.2.
     for out_ordinal in prange(out_size):
-        out_index = np.zeros(4, dtype=np.int64)
+        out_index = np.zeros(4, dtype=np.int32)
         to_index(out_ordinal, out_shape, out_index)
         current_batch, oc, i, j = out_index
 
