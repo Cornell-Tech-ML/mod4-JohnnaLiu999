@@ -6,20 +6,20 @@ import numpy as np
 from numba import prange
 from numba import njit as _njit
 
-from .tensor_data import (
+from minitorch.tensor_data import (
     MAX_DIMS,
     broadcast_index,
     index_to_position,
     shape_broadcast,
     to_index,
 )
-from .tensor_ops import MapProto, TensorOps
+from minitorch.tensor_ops import MapProto, TensorOps
 
 if TYPE_CHECKING:
     from typing import Callable, Optional
 
     from .tensor import Tensor
-    from .tensor_data import Index, Shape, Storage, Strides
+    from .tensor_data import Shape, Storage, Strides
 
 # TIP: Use `NUMBA_DISABLE_JIT=1 pytest tests/ -m task3_1` to run these tests without JIT.
 
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 Fn = TypeVar("Fn")
 
 
-def njit(fn: Fn, **kwargs: Any) -> Fn:
+def njit(fn: Fn, **kwargs: Any) -> Fn:  # noqa: D103
     return _njit(inline="always", **kwargs)(fn)  # type: ignore
 
 
@@ -168,7 +168,26 @@ def tensor_map(
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-        raise NotImplementedError("Need to include this file from past assignment.")
+        # TODO: Implement for Task 3.1.
+        # raise NotImplementedError("Need to implement for Task 3.1")
+        if list(out_shape) == list(in_shape) and list(out_strides) == list(in_strides):
+            # Main loop in parallel
+            for i in prange(len(out)):
+                out[i] = fn(in_storage[i])
+
+        else:
+            for i in prange(len(out)):
+                # All indices use numpy buffers
+                in_i = np.empty(MAX_DIMS, np.int32)
+                out_i = np.empty(MAX_DIMS, np.int32)
+                to_index(i, out_shape, out_i)
+                broadcast_index(out_i, out_shape, in_shape, in_i)
+                # convert back to positions
+                in_pos = index_to_position(in_i, in_strides)
+                out_pos = index_to_position(out_i, out_strides)
+                out[out_pos] = fn(
+                    in_storage[in_pos]
+                )  # When `out` and `in` are stride-aligned, avoid indexing
 
     return njit(_map, parallel=True)  # type: ignore
 
@@ -207,7 +226,30 @@ def tensor_zip(
         b_shape: Shape,
         b_strides: Strides,
     ) -> None:
-        raise NotImplementedError("Need to include this file from past assignment.")
+        # TODO: Implement for Task 3.1.
+        # raise NotImplementedError("Need to implement for Task 3.1")
+        # avoid indexing if shapes and strides are the same
+        if (list(out_shape) == list(a_shape) == list(b_shape)) and (
+            list(out_strides) == list(a_strides) == list(b_strides)
+        ):
+            for i in prange(len(out)):  # Main loop in parallel
+                out[i] = fn(a_storage[i], b_storage[i])
+        else:
+            for i in prange(len(out)):
+                a_i = np.empty(MAX_DIMS, np.int32)  # All Indices Use NumPy Buffers
+                b_i = np.empty(MAX_DIMS, np.int32)
+                out_i = np.empty(MAX_DIMS, np.int32)
+                # convert the positions to indicees
+                to_index(i, out_shape, out_i)
+                broadcast_index(out_i, out_shape, a_shape, a_i)
+                broadcast_index(out_i, out_shape, b_shape, b_i)
+                # convert back to positions
+                a_pos = index_to_position(a_i, a_strides)
+                b_pos = index_to_position(b_i, b_strides)
+                out_pos = index_to_position(out_i, out_strides)
+                out[out_pos] = fn(
+                    a_storage[a_pos], b_storage[b_pos]
+                )  # Avoid Indexing When out and in are Stride-Aligned
 
     return njit(_zip, parallel=True)  # type: ignore
 
@@ -242,7 +284,26 @@ def tensor_reduce(
         a_strides: Strides,
         reduce_dim: int,
     ) -> None:
-        raise NotImplementedError("Need to include this file from past assignment.")
+        # TODO: Implement for Task 3.1.
+        # raise NotImplementedError("Need to implement for Task 3.1")
+        # Main loop in parallel
+        reduce_size = a_shape[reduce_dim]
+        reduce_stride = a_strides[reduce_dim]
+        for i in prange(len(out)):
+            # out_i = np.empty(MAX_DIMS, np.int32)  # All indices use numpy buffers
+            out_i = np.array(a_shape)  # All indices use numpy buffers
+            
+            to_index(i, out_shape, out_i)  # convert position to index
+            out_pos = index_to_position(out_i, out_strides)
+            in_pos = index_to_position(out_i, a_strides)  # calls outside inner loop
+            # current output value
+            cur = out[out_pos]
+            for _ in range(
+                reduce_size
+            ):  # Inner-loop should not call any functions or write non-local variables
+                cur = fn(cur, a_storage[in_pos])
+                in_pos += reduce_stride
+            out[out_pos] = cur
 
     return njit(_reduce, parallel=True)  # type: ignore
 
@@ -290,11 +351,98 @@ def _tensor_matrix_multiply(
         None : Fills in `out`
 
     """
-    a_batch_stride = a_strides[0] if a_shape[0] > 1 else 0
-    b_batch_stride = b_strides[0] if b_shape[0] > 1 else 0
-
-    raise NotImplementedError("Need to include this file from past assignment.")
+    # Get dimensions
+    reduced_size = a_shape[2]
+    # Get batch stride or 0 if dimension is 1
+    a_batch_s = a_strides[0] if a_shape[0] > 1 else 0
+    b_batch_s = b_strides[0] if b_shape[0] > 1 else 0
+    # Get row and column strides
+    a_row_s = a_strides[1]
+    a_col_s = a_strides[2]
+    b_row_s = b_strides[1]
+    b_col_s = b_strides[2]
+    # Outer loop in parallel
+    for batch in prange(out_shape[0]):
+        for i in range(out_shape[1]):
+            for j in range(out_shape[2]):
+                # No index buffers or function calls
+                out_pos = (
+                    batch * out_strides[0] + i * out_strides[1] + j * out_strides[2]
+                )
+                total = 0.0
+                # Calculate starting positions for this batch/row
+                a_in = batch * a_batch_s + i * a_row_s
+                b_in = batch * b_batch_s + j * b_col_s
+                # Inner loop should have no global writes, 1 multiply.
+                for k in range(reduced_size):
+                    a_pos = a_in + k * a_col_s
+                    b_pos = b_in + k * b_row_s
+                    total += a_storage[a_pos] * b_storage[b_pos]
+                out[out_pos] = total
 
 
 tensor_matrix_multiply = njit(_tensor_matrix_multiply, parallel=True)
-assert tensor_matrix_multiply is not None
+
+
+def _tensor_conv1d(
+    out: Storage,
+    out_shape: Shape,
+    out_strides: Strides,
+    input_storage: Storage,
+    input_shape: Shape,
+    input_strides: Strides,
+    weight_storage: Storage,
+    weight_shape: Shape,
+    weight_strides: Strides,
+    stride: int,
+) -> None:
+    """NUMBA 1D Convolution.
+
+    Optimizations:
+    * Outer loop in parallel
+    * Index-based calculations for efficient memory access
+
+    Args:
+    ----
+        out: Storage for the output tensor.
+        out_shape: Shape of the output tensor.
+        out_strides: Strides for the output tensor.
+        input_storage: Storage for the input tensor.
+        input_shape: Shape of the input tensor.
+        input_strides: Strides for the input tensor.
+        weight_storage: Storage for the weight tensor.
+        weight_shape: Shape of the weight tensor.
+        weight_strides: Strides for the weight tensor.
+        stride: Stride for the convolution.
+
+    Returns:
+    -------
+        None: Fills in `out` with the result of 1D convolution.
+    """
+    batch_size, out_width = out_shape
+    _, in_width = input_shape
+    _, kernel_width = weight_shape
+
+    # Outer loop in parallel for batches and output width
+    for batch in prange(batch_size):
+        for out_pos in range(out_width):
+            # Compute the starting position in the input
+            input_start = out_pos * stride
+
+            # Initialize the output value
+            value = 0.0
+
+            # Perform the convolution by iterating over the kernel
+            for k in range(kernel_width):
+                input_index = input_start + k
+                if input_index < in_width:  # Ensure within bounds
+                    input_pos = batch * input_strides[0] + input_index * input_strides[1]
+                    weight_pos = k * weight_strides[0]
+                    value += input_storage[input_pos] * weight_storage[weight_pos]
+
+            # Compute the position in the output tensor
+            out_pos_global = batch * out_strides[0] + out_pos * out_strides[1]
+            out[out_pos_global] = value
+
+
+tensor_conv1d = njit(_tensor_conv1d, parallel=True)
