@@ -76,7 +76,7 @@ def avgpool2d(input: Tensor, kernel: Tuple[int, int]) -> Tensor:
 
     Args:
     ----
-        a: batch x channel x height x width
+        input: batch x channel x height x width
         kernel: height x width of pooling
 
     Returns:

@@ -22,6 +22,18 @@ Fn = TypeVar("Fn")
 
 
 def njit(fn: Fn, **kwargs: Any) -> Fn:
+    """Wrapper for CUDA JIT compilation.
+
+    Args:
+    ----
+        fn: Function to compile
+        **kwargs: Additional arguments to pass to numba.cuda.jit
+
+    Returns:
+    -------
+        FakeCUDAKernel: Compiled CUDA kernel
+
+    """
     return _njit(inline="always", **kwargs)(fn)  # type: ignore
 
 
@@ -150,6 +162,23 @@ class Conv1dFun(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+        """Compute gradients for 1D convolution.
+
+        Args:
+        ----
+            ctx: Context object containing saved tensors from forward pass
+            grad_output: Gradient of loss with respect to conv output
+                Shape: batch x out_channels x width
+
+        Returns:
+        -------
+            tuple of:
+                grad_input: Gradient with respect to input
+                    Shape: batch x in_channels x width
+                grad_weight: Gradient with respect to weight
+                    Shape: out_channels x in_channels x kernel_width
+
+        """
         input, weight = ctx.saved_values
         batch, in_channels, w = input.shape
         out_channels, in_channels, kw = weight.shape
@@ -298,6 +327,23 @@ class Conv2dFun(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+        """Compute gradients for 2D convolution.
+
+        Args:
+        ----
+            ctx: Context object containing saved tensors from forward pass
+            grad_output: Gradient of loss with respect to conv output
+                Shape: batch x out_channels x height x width
+
+        Returns:
+        -------
+            tuple of:
+                grad_input: Gradient with respect to input
+                    Shape: batch x in_channels x height x width
+                grad_weight: Gradient with respect to weight
+                    Shape: out_channels x in_channels x kernel_height x kernel_width
+
+        """
         input, weight = ctx.saved_values
         batch, in_channels, h, w = input.shape
         out_channels, in_channels, kh, kw = weight.shape
