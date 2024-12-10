@@ -290,9 +290,7 @@ def tensor_reduce(
         reduce_size = a_shape[reduce_dim]
         reduce_stride = a_strides[reduce_dim]
         for i in prange(len(out)):
-            # out_i = np.empty(MAX_DIMS, np.int32)  # All indices use numpy buffers
-            out_i = np.array(a_shape)  # All indices use numpy buffers
-            
+            out_i = np.empty(MAX_DIMS, np.int32)  # All indices use numpy buffers
             to_index(i, out_shape, out_i)  # convert position to index
             out_pos = index_to_position(out_i, out_strides)
             in_pos = index_to_position(out_i, a_strides)  # calls outside inner loop
