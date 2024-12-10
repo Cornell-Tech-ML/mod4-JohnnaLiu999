@@ -234,9 +234,9 @@ def launch_conv1d(out: Tensor, input: Tensor, weight: Tensor, reverse: bool) -> 
         Tensor: Output tensor after convolution (on CPU).
 
     """
-    out_gpu = out.gpu()
-    input_gpu = input.gpu()
-    weight_gpu = weight.gpu()
+    out_gpu = out.to_device("cuda")
+    input_gpu = input.to_device("cuda")
+    weight_gpu = weight.to_device("cuda")
 
     out_size = out.size
     threads_per_block = 256
@@ -277,9 +277,9 @@ def launch_conv2d(out: Tensor, input: Tensor, weight: Tensor, reverse: bool) -> 
         Tensor: Output tensor after convolution (on CPU).
 
     """
-    out_gpu = out.gpu()
-    input_gpu = input.gpu()
-    weight_gpu = weight.gpu()
+    out_gpu = out.to_device("cuda")
+    input_gpu = input.to_device("cuda")
+    weight_gpu = weight.to_device("cuda")
 
     out_size = out.size
     threads_per_block = 256
@@ -297,7 +297,6 @@ def launch_conv2d(out: Tensor, input: Tensor, weight: Tensor, reverse: bool) -> 
         np.array(weight._tensor._strides, dtype=np.int32),
         reverse,
     )
-
     cuda.synchronize()
     return out_gpu.cpu()
 
@@ -322,7 +321,7 @@ class Conv1dFun(Function):
         batch, in_channels, w = input.shape
         out_channels, in_channels2, kw = weight.shape
         assert in_channels == in_channels2
-        output = input.zeros((batch, out_channels, w))
+        output = input.zeros((batch, out_channels, w), ndim=3)
         launch_conv1d(output, input, weight, False)
         return output
 
@@ -386,7 +385,7 @@ class Conv2dFun(Function):
         batch, in_channels, h, w = input.shape
         out_channels, in_channels2, kh, kw = weight.shape
         assert in_channels == in_channels2
-        output = input.zeros((batch, out_channels, h, w))
+        output = input.zeros((batch, out_channels, h, w), ndim=4)
         launch_conv2d(output, input, weight, False)
         return output
 
