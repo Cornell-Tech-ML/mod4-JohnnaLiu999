@@ -416,6 +416,7 @@ def _tensor_conv1d(
     Returns:
     -------
         None: Fills in `out` with the result of 1D convolution.
+
     """
     batch_size, out_width = out_shape
     _, in_width = input_shape
@@ -434,7 +435,9 @@ def _tensor_conv1d(
             for k in range(kernel_width):
                 input_index = input_start + k
                 if input_index < in_width:  # Ensure within bounds
-                    input_pos = batch * input_strides[0] + input_index * input_strides[1]
+                    input_pos = (
+                        batch * input_strides[0] + input_index * input_strides[1]
+                    )
                     weight_pos = k * weight_strides[0]
                     value += input_storage[input_pos] * weight_storage[weight_pos]
 

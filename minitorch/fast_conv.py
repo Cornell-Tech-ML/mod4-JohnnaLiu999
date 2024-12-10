@@ -7,8 +7,6 @@ from numba import njit as _njit
 from .autodiff import Context
 from .tensor import Tensor
 from .tensor_data import (
-    MAX_DIMS,
-    Index,
     Shape,
     Strides,
     Storage,
@@ -125,8 +123,7 @@ def _tensor_conv1d(
 
         out[out_pos] = accum
 
-    
-    #raise NotImplementedError("Need to implement for Task 4.1")
+    # raise NotImplementedError("Need to implement for Task 4.1")
 
 
 tensor_conv1d = njit(_tensor_conv1d, parallel=True)
@@ -278,7 +275,12 @@ def _tensor_conv2d(
         current_batch, oc, i, j = out_index
 
         accum = 0
-        out_pos = (current_batch * out_strides[0] + oc * out_strides[1] + i * out_strides[2] + j * out_strides[3])
+        out_pos = (
+            current_batch * out_strides[0]
+            + oc * out_strides[1]
+            + i * out_strides[2]
+            + j * out_strides[3]
+        )
 
         for ic in prange(in_channels):
             for ki in range(kh):
@@ -293,7 +295,7 @@ def _tensor_conv2d(
                         accum += weight[weight_pos] * input[in_pos]
 
         out[out_pos] = accum
-    #raise NotImplementedError("Need to implement for Task 4.2")
+    # raise NotImplementedError("Need to implement for Task 4.2")
 
 
 tensor_conv2d = njit(_tensor_conv2d, parallel=True, fastmath=True)

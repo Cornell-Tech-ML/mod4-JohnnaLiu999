@@ -1,10 +1,8 @@
 from typing import Tuple
 
-from . import operators
 from .autodiff import Context
-from .fast_ops import FastOps
 from .tensor import Tensor
-from .tensor_functions import Function, rand, tensor
+from .tensor_functions import Function, rand
 
 
 # List of functions in this file:
@@ -38,7 +36,7 @@ def tile(input: Tensor, kernel: Tuple[int, int]) -> Tuple[Tensor, int, int]:
     # TODO: Implement for Task 4.3.
     new_height = height // kh
     new_width = width // kw
-    
+
     # Ensure input is contiguous before viewing
     input = input.contiguous().view(batch, channel, new_height, kh, new_width, kw)
     # After permute, call contiguous() again before viewing
@@ -58,7 +56,7 @@ def tile(input: Tensor, kernel: Tuple[int, int]) -> Tuple[Tensor, int, int]:
 
     return out, new_height, new_width
 
-    
+
     # Reshape the input into (batch, channel, new_height, kh, new_width, kw)
     out = input.reshape((batch, channel, new_height, kh, new_width, kw))
     # Rearrange to (batch, channel, new_height, new_width, kh*kw)
@@ -69,6 +67,7 @@ def tile(input: Tensor, kernel: Tuple[int, int]) -> Tuple[Tensor, int, int]:
 
     #raise NotImplementedError("Need to implement for Task 4.3")
     """
+
 
 # TODO: Implement for Task 4.3.
 def avgpool2d(input: Tensor, kernel: Tuple[int, int]) -> Tensor:
@@ -101,6 +100,7 @@ def avgpool2d(input: Tensor, kernel: Tuple[int, int]) -> Tensor:
 
 # TODO: Implement for Task 4.4.
 
+
 class Max(Function):
     @staticmethod
     def forward(ctx: Context, t1: Tensor, dim: Tensor) -> Tensor:
@@ -119,6 +119,7 @@ def max(t1: Tensor, dim: int) -> Tensor:
     """Max function"""
     return Max.apply(t1, t1._ensure_tensor(dim))
 
+
 def argmax(input: Tensor, dim: int) -> Tensor:
     """Compute the argmax as a 1-hot tensor
 
@@ -135,6 +136,7 @@ def argmax(input: Tensor, dim: int) -> Tensor:
     max_val = max(input, dim)
     return input == max_val
 
+
 def softmax(input: Tensor, dim: int) -> Tensor:
     """Compute the softmax as a tensor
 
@@ -150,6 +152,7 @@ def softmax(input: Tensor, dim: int) -> Tensor:
     """
     exp = input.exp()
     return exp / exp.sum(dim=dim)
+
 
 def logsoftmax(input: Tensor, dim: int) -> Tensor:
     """Compute the log of the softmax as a tensor
@@ -211,6 +214,3 @@ def dropout(input: Tensor, rate: float, ignore: bool = False) -> Tensor:
 
     scale = 1.0 / (1.0 - rate) if rate != 1.0 else 1.0
     return mask * input * scale
-
-
-

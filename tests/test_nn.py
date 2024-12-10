@@ -32,7 +32,7 @@ def test_avg(t: Tensor) -> None:
 @given(tensors(shape=(2, 3, 4)))
 def test_max(t: Tensor) -> None:
     # TODO: Implement for Task 4.4.
-    
+
     # perturb the tensor with some noise
     noise_tensor = minitorch.rand(t.shape, backend=t.backend) * 1e-3
 
@@ -48,7 +48,7 @@ def test_max(t: Tensor) -> None:
     assert_close(out[0, 0, 0], max([t[0, 0, i] for i in range(4)]))
 
     minitorch.grad_check(lambda t: minitorch.max(t, 0), t)
-    #raise NotImplementedError("Need to implement for Task 4.4")
+    # raise NotImplementedError("Need to implement for Task 4.4")
 
 
 @pytest.mark.task4_4
