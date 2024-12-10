@@ -42,7 +42,9 @@ class Conv2d(minitorch.Module):
 
     def forward(self, input):
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        out = minitorch.conv2d(input, self.weights.value) + self.bias.value
+        return out
+        #raise NotImplementedError("Need to implement for Task 4.5")
 
 
 class Network(minitorch.Module):
@@ -68,11 +70,25 @@ class Network(minitorch.Module):
         self.out = None
 
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        self.conv1 = Conv2d(1, 4, 3, 3)
+        self.conv2 = Conv2d(4, 8, 3, 3)
+        self.linear1 = Linear(392, 64)
+        self.linear2 = Linear(64, C)
+        #raise NotImplementedError("Need to implement for Task 4.5")
 
     def forward(self, x):
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        x = self.conv1(x).relu()
+        self.mid = x
+        x = self.conv2(x).relu()
+        self.out = x
+        x = minitorch.avgpool2d(x, (4, 4))
+        x = self.linear1(x.view(BATCH, 392)).relu()
+        x = minitorch.dropout(x, 0.25, not self.training)
+        x = self.linear2(x)
+        x = minitorch.logsoftmax(x, dim=1)
+        return x
+        #raise NotImplementedError("Need to implement for Task 4.5")
 
 
 def make_mnist(start, stop):
