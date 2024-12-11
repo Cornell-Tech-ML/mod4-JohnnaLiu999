@@ -36,11 +36,12 @@ The files that will be synced are:
         minitorch/tensor_data.py minitorch/tensor_functions.py minitorch/tensor_ops.py minitorch/operators.py minitorch/scalar.py minitorch/scalar_functions.py minitorch/module.py minitorch/autodiff.py minitorch/module.py project/run_manual.py project/run_scalar.py project/run_tensor.py minitorch/operators.py minitorch/module.py minitorch/autodiff.py minitorch/tensor.py minitorch/datasets.py minitorch/testing.py minitorch/optim.py minitorch/tensor_ops.py minitorch/fast_ops.py minitorch/cuda_ops.py project/parallel_check.py tests/test_tensor_general.py
 
 
-Task 4.4b
+# Task 4.4b
 
 Script for cuda_conv.py (sampling code included): https://github.com/JohnnaLiu999/cuda_conv.py/blob/1bd2ce6e3f86992581494990e98dcd7323b85c86/cuda_conv.py
+Colab link: https://colab.research.google.com/drive/1g89yjTwtsuMzHtp5vslfTU4oDnzCF_3G?usp=sharing
 
-Output of Colab:
+Output of Colab for easier reference:
 ```
 /usr/local/lib/python3.10/dist-packages/numba/cuda/dispatcher.py:536: NumbaPerformanceWarning: Grid size 1 will likely result in GPU under-utilization due to low occupancy.
   warn(NumbaPerformanceWarning(msg))
@@ -166,3 +167,6 @@ Conv2D Output Data: [[[[-3.21796177e+00 -4.72159061e+00 -1.92152667e+00  3.62169
    [-4.88272892e+00  2.64164776e+00 -2.94047892e+00  5.67586723e+00
      1.43982204e+00]]]]
 ```
+
+# Task 4.5
+Kindly see my training log at file sentiment.txt and mnist.txt in this repo. Both satisfy the accuracy requirements. 
