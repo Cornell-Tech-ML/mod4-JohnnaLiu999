@@ -3,9 +3,8 @@ import numpy as np
 from numba import cuda
 from numba import njit as _njit
 
-from .tensor_functions import (
-    tensor,
-)
+from .tensor_functions import tensor
+
 from .autodiff import Context
 from .tensor import Tensor
 from .tensor_data import (
@@ -332,14 +331,11 @@ class Conv1dFun(Function):
         out_channels, in_channels2, kw = weight.shape
         assert in_channels == in_channels2
 
-        # Create output as zeros using Tensor.make without ndim
         out_size = batch * out_channels * w
         output_data = [0.0] * out_size
         output = Tensor.make(
             output_data, (batch, out_channels, w), backend=input.backend
         )
-
-        # output = Tensor.make(output_data, (batch, out_channels, w))
 
         launch_conv1d(output, input, weight, False)
         return output
@@ -367,7 +363,6 @@ class Conv1dFun(Function):
         batch, in_channels, w = input.shape
         out_channels, in_channels2, kw = weight.shape
 
-        # Create grad_weight as zeros
         gw_size = in_channels2 * out_channels * kw
         grad_weight_data = [0.0] * gw_size
         grad_weight = Tensor.make(
@@ -381,7 +376,6 @@ class Conv1dFun(Function):
         launch_conv1d(grad_weight, new_input, new_grad_output, False)
         grad_weight = grad_weight.permute(1, 0, 2)
 
-        # Create grad_input as zeros
         gi_size = batch * in_channels * w
         grad_input_data = [0.0] * gi_size
         grad_input = Tensor.make(
@@ -417,7 +411,6 @@ class Conv2dFun(Function):
         out_channels, in_channels2, kh, kw = weight.shape
         assert in_channels == in_channels2
 
-        # Create output as zeros
         out_size = batch * out_channels * h * w
         output_data = [0.0] * out_size
         output = Tensor.make(
@@ -450,7 +443,6 @@ class Conv2dFun(Function):
         batch, in_channels, h, w = input.shape
         out_channels, in_channels2, kh, kw = weight.shape
 
-        # grad_weight as zeros
         gw_size = in_channels2 * out_channels * kh * kw
         grad_weight_data = [0.0] * gw_size
         grad_weight = Tensor.make(
@@ -464,13 +456,11 @@ class Conv2dFun(Function):
         launch_conv2d(grad_weight, new_input, new_grad_output, False)
         grad_weight = grad_weight.permute(1, 0, 2, 3)
 
-        # grad_input as zeros
         gi_size = batch * in_channels * h * w
         grad_input_data = [0.0] * gi_size
         grad_input = Tensor.make(
             grad_input_data, (batch, in_channels, h, w), backend=input.backend
         )
-        # grad_input = Tensor.make(grad_input_data, (batch, in_channels, h, w))
 
         new_weight = weight.permute(1, 0, 2, 3)
         launch_conv2d(grad_input, grad_output, new_weight, True)
@@ -491,7 +481,8 @@ weight_tensor = tensor(weight_data.tolist())
 
 output_tensor_1d = conv1d(input_tensor, weight_tensor)
 print("Conv1D Output Shape:", output_tensor_1d.shape)
-print("Conv1D Output Data:", output_tensor_1d.data)
+# Use to_numpy() instead of .data
+print("Conv1D Output Data:", output_tensor_1d.to_numpy())
 
 # Example 2D data
 batch, in_channels, height, width = 2, 3, 5, 5
@@ -504,4 +495,5 @@ weight_tensor_2d = tensor(weight_2d.tolist())
 
 output_tensor_2d = conv2d(input_tensor_2d, weight_tensor_2d)
 print("Conv2D Output Shape:", output_tensor_2d.shape)
-print("Conv2D Output Data:", output_tensor_2d.data)
+# Use to_numpy() instead of .data
+print("Conv2D Output Data:", output_tensor_2d.to_numpy())
