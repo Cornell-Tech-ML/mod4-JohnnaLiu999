@@ -1,5 +1,3 @@
-"""testing for zeros"""
-
 from typing import Tuple, TypeVar, Any
 import numpy as np
 from numba import cuda
@@ -12,7 +10,7 @@ from .tensor_data import (
     index_to_position,
     to_index,
 )
-from .tensor_functions import Function
+from .tensor_functions import Function, zeros  # Import zeros directly
 
 Fn = TypeVar("Fn")
 
@@ -235,8 +233,9 @@ class Conv1dFun(Function):
         batch, in_channels, w = input.shape
         out_channels, in_channels2, kw = weight.shape
         assert in_channels == in_channels2
-        # zeros without ndim
-        output = input.zeros((batch, out_channels, w))
+
+        # Use the standalone zeros function
+        output = zeros((batch, out_channels, w), backend=input.backend)
         launch_conv1d(output, input, weight, False)
         return output
 
@@ -252,13 +251,16 @@ class Conv1dFun(Function):
         batch, in_channels, w = input.shape
         out_channels, in_channels2, kw = weight.shape
 
-        grad_weight = grad_output.zeros((in_channels2, out_channels, kw))
+        # Use standalone zeros for grad_weight
+        grad_weight = zeros(
+            (in_channels2, out_channels, kw), backend=grad_output.backend
+        )
         new_input = input.permute(1, 0, 2)
         new_grad_output = grad_output.permute(1, 0, 2)
         launch_conv1d(grad_weight, new_input, new_grad_output, False)
         grad_weight = grad_weight.permute(1, 0, 2)
 
-        grad_input = input.zeros((batch, in_channels, w))
+        grad_input = zeros((batch, in_channels, w), backend=input.backend)
         new_weight = weight.permute(1, 0, 2)
         launch_conv1d(grad_input, grad_output, new_weight, True)
         return grad_input, grad_weight
@@ -280,8 +282,9 @@ class Conv2dFun(Function):
         batch, in_channels, h, w = input.shape
         out_channels, in_channels2, kh, kw = weight.shape
         assert in_channels == in_channels2
-        # zeros without ndim
-        output = input.zeros((batch, out_channels, h, w))
+
+        # Use standalone zeros
+        output = zeros((batch, out_channels, h, w), backend=input.backend)
         launch_conv2d(output, input, weight, False)
         return output
 
@@ -297,13 +300,15 @@ class Conv2dFun(Function):
         batch, in_channels, h, w = input.shape
         out_channels, in_channels2, kh, kw = weight.shape
 
-        grad_weight = grad_output.zeros((in_channels2, out_channels, kh, kw))
+        grad_weight = zeros(
+            (in_channels2, out_channels, kh, kw), backend=grad_output.backend
+        )
         new_input = input.permute(1, 0, 2, 3)
         new_grad_output = grad_output.permute(1, 0, 2, 3)
         launch_conv2d(grad_weight, new_input, new_grad_output, False)
         grad_weight = grad_weight.permute(1, 0, 2, 3)
 
-        grad_input = input.zeros((batch, in_channels, h, w))
+        grad_input = zeros((batch, in_channels, h, w), backend=input.backend)
         new_weight = weight.permute(1, 0, 2, 3)
         launch_conv2d(grad_input, grad_output, new_weight, True)
         return grad_input, grad_weight
