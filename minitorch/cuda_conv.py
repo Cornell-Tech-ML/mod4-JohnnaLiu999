@@ -10,7 +10,8 @@ from .tensor_data import (
     index_to_position,
     to_index,
 )
-from .tensor_functions import Function, zeros  # Import zeros directly
+from .tensor_functions import Function
+import .tensor_functions
 
 Fn = TypeVar("Fn")
 
@@ -229,6 +230,15 @@ class Conv1dFun(Function):
         weight: (out_channels, in_channels, kernel_width)
         output: (batch, out_channels, width)
         """
+        batch, in_channels, w = input.shape
+        out_channels, in_channels2, kw = weight.shape
+        assert in_channels == in_channels2
+        # Call zeros from tensor_functions directly
+        output = tensor_functions.zeros((batch, out_channels, w))
+        launch_conv1d(output, input, weight, False)
+        ctx.save_for_backward(input, weight)
+        return output
+        """
         ctx.save_for_backward(input, weight)
         batch, in_channels, w = input.shape
         out_channels, in_channels2, kw = weight.shape
@@ -238,6 +248,7 @@ class Conv1dFun(Function):
         output = zeros((batch, out_channels, w), backend=input.backend)
         launch_conv1d(output, input, weight, False)
         return output
+        """
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
@@ -246,6 +257,21 @@ class Conv1dFun(Function):
         grad_output: (batch, out_channels, width)
         grad_input: (batch, in_channels, width)
         grad_weight: (in_channels, out_channels, kernel_width)
+        """
+        input, weight = ctx.saved_values
+        batch, in_channels, w = input.shape
+        out_channels, in_channels2, kw = weight.shape
+
+        grad_weight = tensor_functions.zeros((in_channels2, out_channels, kw))
+        new_input = input.permute(1, 0, 2)
+        new_grad_output = grad_output.permute(1, 0, 2)
+        launch_conv1d(grad_weight, new_input, new_grad_output, False)
+        grad_weight = grad_weight.permute(1, 0, 2)
+
+        grad_input = tensor_functions.zeros((batch, in_channels, w))
+        new_weight = weight.permute(1, 0, 2)
+        launch_conv1d(grad_input, grad_output, new_weight, True)
+        return grad_input, grad_weight
         """
         input, weight = ctx.saved_values
         batch, in_channels, w = input.shape
@@ -264,7 +290,7 @@ class Conv1dFun(Function):
         new_weight = weight.permute(1, 0, 2)
         launch_conv1d(grad_input, grad_output, new_weight, True)
         return grad_input, grad_weight
-
+        """
 
 conv1d = Conv1dFun.apply
 
@@ -278,6 +304,15 @@ class Conv2dFun(Function):
         weight: (out_channels, in_channels, kh, kw)
         output: (batch, out_channels, height, width)
         """
+        batch, in_channels, h, w = input.shape
+        out_channels, in_channels2, kh, kw = weight.shape
+        assert in_channels == in_channels2
+        # Call zeros from tensor_functions directly
+        output = tensor_functions.zeros((batch, out_channels, h, w))
+        launch_conv2d(output, input, weight, False)
+        ctx.save_for_backward(input, weight)
+        return output
+        """
         ctx.save_for_backward(input, weight)
         batch, in_channels, h, w = input.shape
         out_channels, in_channels2, kh, kw = weight.shape
@@ -287,6 +322,7 @@ class Conv2dFun(Function):
         output = zeros((batch, out_channels, h, w), backend=input.backend)
         launch_conv2d(output, input, weight, False)
         return output
+        """
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
@@ -295,6 +331,21 @@ class Conv2dFun(Function):
         grad_output: (batch, out_channels, height, width)
         grad_input: (batch, in_channels, height, width)
         grad_weight: (in_channels, out_channels, kh, kw)
+        """
+        input, weight = ctx.saved_values
+        batch, in_channels, h, w = input.shape
+        out_channels, in_channels2, kh, kw = weight.shape
+
+        grad_weight = tensor_functions.zeros((in_channels2, out_channels, kh, kw))
+        new_input = input.permute(1, 0, 2, 3)
+        new_grad_output = grad_output.permute(1, 0, 2, 3)
+        launch_conv2d(grad_weight, new_input, new_grad_output, False)
+        grad_weight = grad_weight.permute(1, 0, 2, 3)
+
+        grad_input = tensor_functions.zeros((batch, in_channels, h, w))
+        new_weight = weight.permute(1, 0, 2, 3)
+        launch_conv2d(grad_input, grad_output, new_weight, True)
+        return grad_input, grad_weight
         """
         input, weight = ctx.saved_values
         batch, in_channels, h, w = input.shape
@@ -312,6 +363,6 @@ class Conv2dFun(Function):
         new_weight = weight.permute(1, 0, 2, 3)
         launch_conv2d(grad_input, grad_output, new_weight, True)
         return grad_input, grad_weight
-
+        """
 
 conv2d = Conv2dFun.apply
