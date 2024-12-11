@@ -349,7 +349,7 @@ def _tensor_matrix_multiply(
         None : Fills in `out`
 
     """
-    # Get dimensions
+    # Get dimensions 1
     reduced_size = a_shape[2]
     # Get batch stride or 0 if dimension is 1
     a_batch_s = a_strides[0] if a_shape[0] > 1 else 0
