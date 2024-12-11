@@ -1,1 +1,1 @@
-"""Please see my README.md"""
+"""Please kindly see my README.md"""
