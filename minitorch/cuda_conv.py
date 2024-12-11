@@ -21,11 +21,11 @@ def njit(fn: Fn, **kwargs: Any) -> Fn:
     Args:
     ----
         fn: Function to compile
-        **kwargs: Additional arguments to pass to numba.cuda.jit
+        **kwargs: Additional arguments for Numba JIT
 
     Returns:
     -------
-        FakeCUDAKernel: Compiled CUDA kernel
+        Compiled function
 
     """
     return _njit(inline="always", **kwargs)(fn)  # type: ignore
@@ -225,17 +225,16 @@ class Conv1dFun(Function):
     def forward(ctx: Context, input: Tensor, weight: Tensor) -> Tensor:
         """Forward pass of 1D convolution.
 
-        Shape:
-            input: (batch, in_channels, width)
-            weight: (out_channels, in_channels, kernel_width)
-            output: (batch, out_channels, width)
+        input: (batch, in_channels, width)
+        weight: (out_channels, in_channels, kernel_width)
+        output: (batch, out_channels, width)
         """
         ctx.save_for_backward(input, weight)
         batch, in_channels, w = input.shape
         out_channels, in_channels2, kw = weight.shape
         assert in_channels == in_channels2
-        # Add ndim=3 for a 3D tensor
-        output = input.zeros((batch, out_channels, w), ndim=3)
+        # zeros without ndim
+        output = input.zeros((batch, out_channels, w))
         launch_conv1d(output, input, weight, False)
         return output
 
@@ -251,15 +250,13 @@ class Conv1dFun(Function):
         batch, in_channels, w = input.shape
         out_channels, in_channels2, kw = weight.shape
 
-        # grad_weight: 3D (in_channels, out_channels, kw)
-        grad_weight = grad_output.zeros((in_channels2, out_channels, kw), ndim=3)
+        grad_weight = grad_output.zeros((in_channels2, out_channels, kw))
         new_input = input.permute(1, 0, 2)
         new_grad_output = grad_output.permute(1, 0, 2)
         launch_conv1d(grad_weight, new_input, new_grad_output, False)
         grad_weight = grad_weight.permute(1, 0, 2)
 
-        # grad_input: 3D (batch, in_channels, width)
-        grad_input = input.zeros((batch, in_channels, w), ndim=3)
+        grad_input = input.zeros((batch, in_channels, w))
         new_weight = weight.permute(1, 0, 2)
         launch_conv1d(grad_input, grad_output, new_weight, True)
         return grad_input, grad_weight
@@ -281,8 +278,8 @@ class Conv2dFun(Function):
         batch, in_channels, h, w = input.shape
         out_channels, in_channels2, kh, kw = weight.shape
         assert in_channels == in_channels2
-        # Add ndim=4 for a 4D tensor
-        output = input.zeros((batch, out_channels, h, w), ndim=4)
+        # zeros without ndim
+        output = input.zeros((batch, out_channels, h, w))
         launch_conv2d(output, input, weight, False)
         return output
 
@@ -298,15 +295,13 @@ class Conv2dFun(Function):
         batch, in_channels, h, w = input.shape
         out_channels, in_channels2, kh, kw = weight.shape
 
-        # grad_weight: 4D (in_channels, out_channels, kh, kw)
-        grad_weight = grad_output.zeros((in_channels2, out_channels, kh, kw), ndim=4)
+        grad_weight = grad_output.zeros((in_channels2, out_channels, kh, kw))
         new_input = input.permute(1, 0, 2, 3)
         new_grad_output = grad_output.permute(1, 0, 2, 3)
         launch_conv2d(grad_weight, new_input, new_grad_output, False)
         grad_weight = grad_weight.permute(1, 0, 2, 3)
 
-        # grad_input: 4D (batch, in_channels, h, w)
-        grad_input = input.zeros((batch, in_channels, h, w), ndim=4)
+        grad_input = input.zeros((batch, in_channels, h, w))
         new_weight = weight.permute(1, 0, 2, 3)
         launch_conv2d(grad_input, grad_output, new_weight, True)
         return grad_input, grad_weight
