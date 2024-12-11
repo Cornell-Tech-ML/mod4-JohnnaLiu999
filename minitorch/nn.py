@@ -46,6 +46,7 @@ def tile(input: Tensor, kernel: Tuple[int, int]) -> Tuple[Tensor, int, int]:
     return input, new_height, new_width
 
     """
+    test
     out = input.view(batch, channel, new_height, kh, new_width, kw)
 
     # Now permute to (batch, channel, new_height, new_width, kh, kw)
