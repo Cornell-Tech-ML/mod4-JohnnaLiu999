@@ -49,33 +49,7 @@ def cuda_kernel_conv1d(
     weight_strides: np.ndarray,
     reverse: bool,
 ) -> None:
-    """Perform 1D convolution using CUDA kernels.
-
-    Given:
-        Input:  (batch, in_channels, width)
-        Weight: (out_channels, in_channels, kernel_width)
-
-    Produces:
-        Output: (batch, out_channels, width)
-
-    Args:
-    ----
-        out (Any): Output tensor storage on device.
-        out_shape (np.ndarray): Shape [batch, out_channels, out_width].
-        out_strides (np.ndarray): Strides of the output tensor.
-        input (Any): Input tensor storage on device.
-        input_shape (np.ndarray): Shape [batch, in_channels, width].
-        input_strides (np.ndarray): Strides of the input tensor.
-        weight (Any): Weight (kernel) tensor storage on device.
-        weight_shape (np.ndarray): Shape [out_channels, in_channels, kernel_width].
-        weight_strides (np.ndarray): Strides of the weight tensor.
-        reverse (bool): If True, anchor kernel from the right, else from the left.
-
-    Returns:
-    -------
-        None
-
-    """
+    """Perform 1D convolution using CUDA kernels."""
     batch_ = out_shape[0]
     out_channels = out_shape[1]
     out_width = out_shape[2]
@@ -125,33 +99,7 @@ def cuda_kernel_conv2d(
     weight_strides: np.ndarray,
     reverse: bool,
 ) -> None:
-    """Perform 2D convolution using CUDA kernels.
-
-    Given:
-        Input:  (batch, in_channels, height, width)
-        Weight: (out_channels, in_channels, kh, kw)
-
-    Produces:
-        Output: (batch, out_channels, height, width)
-
-    Args:
-    ----
-        out (Any): Output tensor storage on device.
-        out_shape (np.ndarray): Shape [batch, out_channels, out_height, out_width].
-        out_strides (np.ndarray): Strides of the output tensor.
-        input (Any): Input tensor storage on device.
-        input_shape (np.ndarray): Shape [batch, in_channels, height, width].
-        input_strides (np.ndarray): Strides of the input tensor.
-        weight (Any): Weight (kernel) tensor storage on device.
-        weight_shape (np.ndarray): Shape [out_channels, in_channels, kh, kw].
-        weight_strides (np.ndarray): Strides of the weight tensor.
-        reverse (bool): If True, anchor kernel bottom-right, else top-left.
-
-    Returns:
-    -------
-        None
-
-    """
+    """Perform 2D convolution using CUDA kernels."""
     batch_ = out_shape[0]
     out_channels = out_shape[1]
     out_height = out_shape[2]
@@ -207,20 +155,7 @@ def cuda_kernel_conv2d(
 
 
 def launch_conv1d(out: Tensor, input: Tensor, weight: Tensor, reverse: bool) -> Tensor:
-    """Launch the 1D convolution CUDA kernel.
-
-    Args:
-    ----
-        out (Tensor): Pre-allocated output tensor (batch, out_channels, width).
-        input (Tensor): Input tensor (batch, in_channels, width).
-        weight (Tensor): Weight tensor (out_channels, in_channels, kernel_width).
-        reverse (bool): If True, anchor kernel from the right, else from the left.
-
-    Returns:
-    -------
-        Tensor: Output tensor after convolution on CPU.
-
-    """
+    """Launch the 1D convolution CUDA kernel."""
     # Transfer data to device
     out_arr = cuda.to_device(out._tensor._storage)
     input_arr = cuda.to_device(input._tensor._storage)
@@ -230,7 +165,6 @@ def launch_conv1d(out: Tensor, input: Tensor, weight: Tensor, reverse: bool) -> 
     threads_per_block = 256
     blocks = (out_size + threads_per_block - 1) // threads_per_block
 
-    # Launch kernel
     cuda_kernel_conv1d[blocks, threads_per_block](  # type: ignore
         out_arr,
         np.array(out.shape, dtype=np.int32),
@@ -245,27 +179,13 @@ def launch_conv1d(out: Tensor, input: Tensor, weight: Tensor, reverse: bool) -> 
     )
     cuda.synchronize()
 
-    # Copy result back to host
+    # Copy result back
     out_arr.copy_to_host(out._tensor._storage)
     return out
 
 
 def launch_conv2d(out: Tensor, input: Tensor, weight: Tensor, reverse: bool) -> Tensor:
-    """Launch the 2D convolution CUDA kernel.
-
-    Args:
-    ----
-        out (Tensor): Pre-allocated output tensor (batch, out_channels, height, width).
-        input (Tensor): Input tensor (batch, in_channels, height, width).
-        weight (Tensor): Weight tensor (out_channels, in_channels, kh, kw).
-        reverse (bool): If True, anchor kernel bottom-right, else top-left.
-
-    Returns:
-    -------
-        Tensor: Output tensor after convolution on CPU.
-
-    """
-    # Transfer data to device
+    """Launch the 2D convolution CUDA kernel."""
     out_arr = cuda.to_device(out._tensor._storage)
     input_arr = cuda.to_device(input._tensor._storage)
     weight_arr = cuda.to_device(weight._tensor._storage)
@@ -274,7 +194,6 @@ def launch_conv2d(out: Tensor, input: Tensor, weight: Tensor, reverse: bool) -> 
     threads_per_block = 256
     blocks = (out_size + threads_per_block - 1) // threads_per_block
 
-    # Launch kernel
     cuda_kernel_conv2d[blocks, threads_per_block](  # type: ignore
         out_arr,
         np.array(out.shape, dtype=np.int32),
@@ -289,7 +208,6 @@ def launch_conv2d(out: Tensor, input: Tensor, weight: Tensor, reverse: bool) -> 
     )
     cuda.synchronize()
 
-    # Copy result back to host
     out_arr.copy_to_host(out._tensor._storage)
     return out
 
@@ -297,44 +215,19 @@ def launch_conv2d(out: Tensor, input: Tensor, weight: Tensor, reverse: bool) -> 
 class Conv1dFun(Function):
     @staticmethod
     def forward(ctx: Context, input: Tensor, weight: Tensor) -> Tensor:
-        """Compute the forward pass of 1D convolution.
-
-        Args:
-        ----
-            ctx (Context): Context for saving intermediate values.
-            input (Tensor): (batch, in_channels, width)
-            weight (Tensor): (out_channels, in_channels, kernel_width)
-
-        Returns:
-        -------
-            Tensor: (batch, out_channels, width)
-
-        """
+        """Forward pass for 1D convolution."""
         ctx.save_for_backward(input, weight)
         batch, in_channels, w = input.shape
         out_channels, in_channels2, kw = weight.shape
         assert in_channels == in_channels2
-        # Provide ndim explicitly
-        output = input.zeros((batch, out_channels, w), ndim=3)
+        # Remove ndim parameter
+        output = input.zeros((batch, out_channels, w))
         launch_conv1d(output, input, weight, False)
         return output
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
-        """Compute gradients for 1D convolution.
-
-        Args:
-        ----
-            ctx (Context): Context from forward pass.
-            grad_output (Tensor): (batch, out_channels, width)
-
-        Returns:
-        -------
-            (Tensor, Tensor):
-                grad_input: (batch, in_channels, width)
-                grad_weight: (out_channels, in_channels, kernel_width)
-
-        """
+        """Backward pass for 1D convolution."""
         input, weight = ctx.saved_values
         batch, in_channels, w = input.shape
         out_channels, in_channels2, kw = weight.shape
@@ -357,44 +250,19 @@ conv1d = Conv1dFun.apply
 class Conv2dFun(Function):
     @staticmethod
     def forward(ctx: Context, input: Tensor, weight: Tensor) -> Tensor:
-        """Compute the forward pass of 2D convolution.
-
-        Args:
-        ----
-            ctx (Context): Context object.
-            input (Tensor): (batch, in_channels, height, width)
-            weight (Tensor): (out_channels, in_channels, kh, kw)
-
-        Returns:
-        -------
-            Tensor: (batch, out_channels, height, width)
-
-        """
+        """Forward pass for 2D convolution."""
         ctx.save_for_backward(input, weight)
         batch, in_channels, h, w = input.shape
         out_channels, in_channels2, kh, kw = weight.shape
         assert in_channels == in_channels2
-        # Provide ndim explicitly
-        output = input.zeros((batch, out_channels, h, w), ndim=4)
+        # Remove ndim parameter
+        output = input.zeros((batch, out_channels, h, w))
         launch_conv2d(output, input, weight, False)
         return output
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
-        """Compute gradients for 2D convolution.
-
-        Args:
-        ----
-            ctx (Context): Context from forward pass.
-            grad_output (Tensor): (batch, out_channels, height, width)
-
-        Returns:
-        -------
-            (Tensor, Tensor):
-                grad_input: (batch, in_channels, height, width)
-                grad_weight: (out_channels, in_channels, kh, kw)
-
-        """
+        """Backward pass for 2D convolution."""
         input, weight = ctx.saved_values
         batch, in_channels, h, w = input.shape
         out_channels, in_channels2, kh, kw = weight.shape
