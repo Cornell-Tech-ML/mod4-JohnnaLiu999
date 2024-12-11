@@ -221,29 +221,33 @@ def launch_conv1d(out: Tensor, input: Tensor, weight: Tensor, reverse: bool) -> 
         Tensor: Output tensor after convolution on CPU.
 
     """
-    out_gpu = out.gpu()
-    input_gpu = input.gpu()
-    weight_gpu = weight.gpu()
+    # Transfer data to device
+    out_arr = cuda.to_device(out._tensor._storage)
+    input_arr = cuda.to_device(input._tensor._storage)
+    weight_arr = cuda.to_device(weight._tensor._storage)
 
     out_size = out.size
     threads_per_block = 256
     blocks = (out_size + threads_per_block - 1) // threads_per_block
 
+    # Launch kernel
     cuda_kernel_conv1d[blocks, threads_per_block](  # type: ignore
-        out_gpu._tensor._storage,
+        out_arr,
         np.array(out.shape, dtype=np.int32),
         np.array(out._tensor._strides, dtype=np.int32),
-        input_gpu._tensor._storage,
+        input_arr,
         np.array(input.shape, dtype=np.int32),
         np.array(input._tensor._strides, dtype=np.int32),
-        weight_gpu._tensor._storage,
+        weight_arr,
         np.array(weight.shape, dtype=np.int32),
         np.array(weight._tensor._strides, dtype=np.int32),
         reverse,
     )
-
     cuda.synchronize()
-    return out_gpu.cpu()
+
+    # Copy result back to host
+    out_arr.copy_to_host(out._tensor._storage)
+    return out
 
 
 def launch_conv2d(out: Tensor, input: Tensor, weight: Tensor, reverse: bool) -> Tensor:
@@ -261,28 +265,33 @@ def launch_conv2d(out: Tensor, input: Tensor, weight: Tensor, reverse: bool) -> 
         Tensor: Output tensor after convolution on CPU.
 
     """
-    out_gpu = out.gpu()
-    input_gpu = input.gpu()
-    weight_gpu = weight.gpu()
+    # Transfer data to device
+    out_arr = cuda.to_device(out._tensor._storage)
+    input_arr = cuda.to_device(input._tensor._storage)
+    weight_arr = cuda.to_device(weight._tensor._storage)
 
     out_size = out.size
     threads_per_block = 256
     blocks = (out_size + threads_per_block - 1) // threads_per_block
 
+    # Launch kernel
     cuda_kernel_conv2d[blocks, threads_per_block](  # type: ignore
-        out_gpu._tensor._storage,
+        out_arr,
         np.array(out.shape, dtype=np.int32),
         np.array(out._tensor._strides, dtype=np.int32),
-        input_gpu._tensor._storage,
+        input_arr,
         np.array(input.shape, dtype=np.int32),
         np.array(input._tensor._strides, dtype=np.int32),
-        weight_gpu._tensor._storage,
+        weight_arr,
         np.array(weight.shape, dtype=np.int32),
         np.array(weight._tensor._strides, dtype=np.int32),
         reverse,
     )
     cuda.synchronize()
-    return out_gpu.cpu()
+
+    # Copy result back to host
+    out_arr.copy_to_host(out._tensor._storage)
+    return out
 
 
 class Conv1dFun(Function):
@@ -292,20 +301,21 @@ class Conv1dFun(Function):
 
         Args:
         ----
-            ctx (Context): Autodiff context for saving intermediate values.
-            input (Tensor): Input tensor (batch, in_channels, width).
-            weight (Tensor): Weight tensor (out_channels, in_channels, kernel_width).
+            ctx (Context): Context for saving intermediate values.
+            input (Tensor): (batch, in_channels, width)
+            weight (Tensor): (out_channels, in_channels, kernel_width)
 
         Returns:
         -------
-            Tensor: Output tensor (batch, out_channels, width).
+            Tensor: (batch, out_channels, width)
 
         """
         ctx.save_for_backward(input, weight)
         batch, in_channels, w = input.shape
         out_channels, in_channels2, kw = weight.shape
         assert in_channels == in_channels2
-        output = input.zeros((batch, out_channels, w))  # removed ndim
+        # Provide ndim explicitly
+        output = input.zeros((batch, out_channels, w), ndim=3)
         launch_conv1d(output, input, weight, False)
         return output
 
@@ -315,8 +325,8 @@ class Conv1dFun(Function):
 
         Args:
         ----
-            ctx (Context): Context with saved tensors from forward pass.
-            grad_output (Tensor): Gradient w.r.t. output (batch, out_channels, width)
+            ctx (Context): Context from forward pass.
+            grad_output (Tensor): (batch, out_channels, width)
 
         Returns:
         -------
@@ -351,7 +361,7 @@ class Conv2dFun(Function):
 
         Args:
         ----
-            ctx (Context): Context object for saving intermediate values.
+            ctx (Context): Context object.
             input (Tensor): (batch, in_channels, height, width)
             weight (Tensor): (out_channels, in_channels, kh, kw)
 
@@ -364,7 +374,8 @@ class Conv2dFun(Function):
         batch, in_channels, h, w = input.shape
         out_channels, in_channels2, kh, kw = weight.shape
         assert in_channels == in_channels2
-        output = input.zeros((batch, out_channels, h, w))  # removed ndim
+        # Provide ndim explicitly
+        output = input.zeros((batch, out_channels, h, w), ndim=4)
         launch_conv2d(output, input, weight, False)
         return output
 
@@ -375,7 +386,7 @@ class Conv2dFun(Function):
         Args:
         ----
             ctx (Context): Context from forward pass.
-            grad_output (Tensor): Gradient w.r.t. output (batch, out_channels, height, width)
+            grad_output (Tensor): (batch, out_channels, height, width)
 
         Returns:
         -------
