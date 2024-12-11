@@ -329,11 +329,10 @@ class Conv1dFun(Function):
         out_channels, in_channels2, kw = weight.shape
         assert in_channels == in_channels2
 
-        # Manually create a zero tensor without zeros(...) or ndim.
-        size = batch * out_channels * w
-        output = Tensor.make(
-            [0.0] * size, (batch, out_channels, w), backend=input.backend
-        )
+        # Create output as zeros using Tensor.make without ndim
+        out_size = batch * out_channels * w
+        output_data = [0.0] * out_size
+        output = Tensor.make(output_data, (batch, out_channels, w))
 
         launch_conv1d(output, input, weight, False)
         return output
@@ -363,11 +362,8 @@ class Conv1dFun(Function):
 
         # Create grad_weight as zeros
         gw_size = in_channels2 * out_channels * kw
-        grad_weight = Tensor.make(
-            [0.0] * gw_size,
-            (in_channels2, out_channels, kw),
-            backend=grad_output.backend,
-        )
+        grad_weight_data = [0.0] * gw_size
+        grad_weight = Tensor.make(grad_weight_data, (in_channels2, out_channels, kw))
 
         new_input = input.permute(1, 0, 2)
         new_grad_output = grad_output.permute(1, 0, 2)
@@ -376,9 +372,8 @@ class Conv1dFun(Function):
 
         # Create grad_input as zeros
         gi_size = batch * in_channels * w
-        grad_input = Tensor.make(
-            [0.0] * gi_size, (batch, in_channels, w), backend=input.backend
-        )
+        grad_input_data = [0.0] * gi_size
+        grad_input = Tensor.make(grad_input_data, (batch, in_channels, w))
 
         new_weight = weight.permute(1, 0, 2)
         launch_conv1d(grad_input, grad_output, new_weight, True)
@@ -409,11 +404,10 @@ class Conv2dFun(Function):
         out_channels, in_channels2, kh, kw = weight.shape
         assert in_channels == in_channels2
 
-        # Create zero tensor for output
-        size = batch * out_channels * h * w
-        output = Tensor.make(
-            [0.0] * size, (batch, out_channels, h, w), backend=input.backend
-        )
+        # Create output as zeros
+        out_size = batch * out_channels * h * w
+        output_data = [0.0] * out_size
+        output = Tensor.make(output_data, (batch, out_channels, h, w))
 
         launch_conv2d(output, input, weight, False)
         return output
@@ -424,16 +418,16 @@ class Conv2dFun(Function):
 
         Args:
         ----
-            ctx: Context object containing saved tensors from forward pass
-            grad_output: Gradient of loss with respect to conv output
+            ctx: Context object containing saved tensors from forward pass.
+            grad_output (Tensor): Gradient of loss w.r.t. output
                 Shape: batch x out_channels x height x width
 
         Returns:
         -------
             tuple of:
-                grad_input: Gradient w.r.t. input
+                grad_input (Tensor): Gradient w.r.t. input
                     Shape: batch x in_channels x height x width
-                grad_weight: Gradient w.r.t. weight
+                grad_weight (Tensor): Gradient w.r.t. weight
                     Shape: out_channels x in_channels x kernel_height x kernel_width
 
         """
@@ -441,12 +435,11 @@ class Conv2dFun(Function):
         batch, in_channels, h, w = input.shape
         out_channels, in_channels2, kh, kw = weight.shape
 
-        # Create grad_weight as zeros
+        # grad_weight as zeros
         gw_size = in_channels2 * out_channels * kh * kw
+        grad_weight_data = [0.0] * gw_size
         grad_weight = Tensor.make(
-            [0.0] * gw_size,
-            (in_channels2, out_channels, kh, kw),
-            backend=grad_output.backend,
+            grad_weight_data, (in_channels2, out_channels, kh, kw)
         )
 
         new_input = input.permute(1, 0, 2, 3)
@@ -454,11 +447,10 @@ class Conv2dFun(Function):
         launch_conv2d(grad_weight, new_input, new_grad_output, False)
         grad_weight = grad_weight.permute(1, 0, 2, 3)
 
-        # Create grad_input as zeros
+        # grad_input as zeros
         gi_size = batch * in_channels * h * w
-        grad_input = Tensor.make(
-            [0.0] * gi_size, (batch, in_channels, h, w), backend=input.backend
-        )
+        grad_input_data = [0.0] * gi_size
+        grad_input = Tensor.make(grad_input_data, (batch, in_channels, h, w))
 
         new_weight = weight.permute(1, 0, 2, 3)
         launch_conv2d(grad_input, grad_output, new_weight, True)
