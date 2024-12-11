@@ -3,7 +3,9 @@ import numpy as np
 from numba import cuda
 from numba import njit as _njit
 
-from .tensor_functions import tensor
+from .tensor_functions import (
+    tensor,
+)
 from .autodiff import Context
 from .tensor import Tensor
 from .tensor_data import (
