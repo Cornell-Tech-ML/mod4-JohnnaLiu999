@@ -35,7 +35,9 @@ class Conv1d(minitorch.Module):
 
     def forward(self, input):
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        out = minitorch.conv1d(input, self.weights.value) + self.bias.value
+        return out
+        #raise NotImplementedError("Need to implement for Task 4.5")
 
 
 class CNNSentimentKim(minitorch.Module):
@@ -62,14 +64,42 @@ class CNNSentimentKim(minitorch.Module):
         super().__init__()
         self.feature_map_size = feature_map_size
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        self.conv1 = Conv1d(embedding_size, feature_map_size, filter_sizes[0])
+        self.conv2 = Conv1d(embedding_size, feature_map_size, filter_sizes[1])
+        self.conv3 = Conv1d(embedding_size, feature_map_size, filter_sizes[2])
+        self.linear = Linear(feature_map_size, 1)
+        self.dropout = dropout
+        #raise NotImplementedError("Need to implement for Task 4.5")
 
     def forward(self, embeddings):
         """
         embeddings tensor: [batch x sentence length x embedding dim]
         """
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        x = embeddings.permute(0, 2, 1)
+        # feature maps
+        out1 = self.conv1.forward(x).relu()
+        out2 = self.conv2.forward(x).relu()
+        out3 = self.conv3.forward(x).relu()
+
+        # Max over time
+        m1 = minitorch.max(out1, dim=2)  # max pooling over the time dimension
+        m2 = minitorch.max(out2, dim=2)
+        m3 = minitorch.max(out3, dim=2)
+
+        # Combine feature maps
+        combined = m1 + m2 + m3
+        combined = combined.view(combined.shape[0], combined.shape[1])
+
+        # Apply linear layer
+        out = self.linear.forward(combined)
+
+        # Apply dropout (during training)
+        out = minitorch.dropout(out, self.dropout, not self.training)
+
+        # Apply sigmoid activation
+        return out.sigmoid().view(embeddings.shape[0])
+        #raise NotImplementedError("Need to implement for Task 4.5")
 
 
 # Evaluation helper methods

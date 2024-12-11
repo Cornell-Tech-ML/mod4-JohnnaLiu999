@@ -34,3 +34,9 @@ python sync_previous_module.py previous-module-dir current-module-dir
 The files that will be synced are:
 
         minitorch/tensor_data.py minitorch/tensor_functions.py minitorch/tensor_ops.py minitorch/operators.py minitorch/scalar.py minitorch/scalar_functions.py minitorch/module.py minitorch/autodiff.py minitorch/module.py project/run_manual.py project/run_scalar.py project/run_tensor.py minitorch/operators.py minitorch/module.py minitorch/autodiff.py minitorch/tensor.py minitorch/datasets.py minitorch/testing.py minitorch/optim.py minitorch/tensor_ops.py minitorch/fast_ops.py minitorch/cuda_ops.py project/parallel_check.py tests/test_tensor_general.py
+
+# Task44b
+[Script,sampling code included](https://github.com/JohnnaLiu999/cuda_conv.py/blob/1bd2ce6e3f86992581494990e98dcd7323b85c86/cuda_conv.py)
+[Colab link](https://colab.research.google.com/drive/1g89yjTwtsuMzHtp5vslfTU4oDnzCF_3G?usp=sharing)
+# Task45
+Please kindly see my training log at file sentiment.txt and mnist.txt in this repo. Both satisfy the accuracy requirements.
