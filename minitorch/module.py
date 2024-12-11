@@ -30,12 +30,16 @@ class Module:
         return list(m.values())
 
     def train(self) -> None:
-        """Set the mode of this module and all descendent modules to `train`."""
-        raise NotImplementedError("Need to include this file from past assignment.")
+        """Set the `training` flag of this and descendent to true."""
+        self.training = True
+        for module in self.modules():
+            module.train()
 
     def eval(self) -> None:
-        """Set the mode of this module and all descendent modules to `eval`."""
-        raise NotImplementedError("Need to include this file from past assignment.")
+        """Set the `training` flag of this and descendent to false."""
+        self.training = False
+        for module in self.modules():
+            module.eval()
 
     def named_parameters(self) -> Sequence[Tuple[str, Parameter]]:
         """Collect all the parameters of this module and its descendents.
@@ -45,11 +49,36 @@ class Module:
             The name and `Parameter` of each ancestor parameter.
 
         """
-        raise NotImplementedError("Need to include this file from past assignment.")
+        # List to store all named parameters
+        params = []
+
+        # Add this module's parameters to the list
+        for name, param in self._parameters.items():
+            params.append((name, param))
+
+        # Recursively add child modules' parameters with proper names
+        for module_name, module in self._modules.items():
+            for name, param in module.named_parameters():
+                # Combine module name and parameter name to maintain hierarchy
+                full_name = f"{module_name}.{name}"
+                params.append((full_name, param))
+
+        return params
 
     def parameters(self) -> Sequence[Parameter]:
         """Enumerate over all the parameters of this module and its descendents."""
-        raise NotImplementedError("Need to include this file from past assignment.")
+        # Initialize an empty list to store parameters
+        params = []
+
+        # Collect parameters from the current module
+        for param in self._parameters.values():
+            params.append(param)
+
+        # Recursively collect parameters from all submodules
+        for module in self._modules.values():
+            params.extend(module.parameters())
+
+        return params
 
     def add_parameter(self, k: str, v: Any) -> Parameter:
         """Manually add a parameter. Useful helper for scalar parameters.
@@ -85,6 +114,24 @@ class Module:
         return None
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        """Makes an instance of the class callable, passing the arguments to the `forward` method.
+
+        This method allows the instance to be used as a function. When called, it forwards the
+        provided positional and keyword arguments to the `forward` method, and returns the result.
+
+        Parameters
+        ----------
+        *args : Any
+            Positional arguments to pass to the `forward` method.
+        **kwargs : Any
+            Keyword arguments to pass to the `forward` method.
+
+        Returns
+        -------
+        Any
+            The output of the `forward` method, which could be of any type depending on the implementation.
+
+        """
         return self.forward(*args, **kwargs)
 
     def __repr__(self) -> str:

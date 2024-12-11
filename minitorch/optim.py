@@ -15,6 +15,15 @@ class SGD(Optimizer):
         self.lr = lr
 
     def zero_grad(self) -> None:
+        """Zeroes out the gradients of the parameters in the optimizer.
+
+        Iterates over the parameters and sets the derivative and grad values to None if they are not None.
+
+        Returns
+        -------
+        None
+
+        """
         for p in self.parameters:
             if p.value is None:
                 continue
@@ -26,6 +35,18 @@ class SGD(Optimizer):
                     p.value.grad = None
 
     def step(self) -> None:
+        """Updates the parameters based on the gradient stored in the parameter.
+
+        For each parameter, checks if the derivative or grad is not None, and if so, updates the parameter
+        value by subtracting the product of the learning rate and the derivative, or the learning rate and
+        the grad. If the parameter is None, or if the derivative or grad is None, the parameter is not
+        updated.
+
+        Returns
+        -------
+        None
+
+        """
         for p in self.parameters:
             if p.value is None:
                 continue
